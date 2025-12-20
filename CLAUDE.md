@@ -1,3 +1,83 @@
+## Quick Reference
+- Code in Laravel Way: Use framework conventions, facades, and built-in features over custom implementations
+- Run `./vendor/bin/phpstan analyse` and fix any errors before committing.
+- Run `./vendor/bin/pint` before commits (code formatting required)
+- This is a New project: Modify existing migrations directly instead of creating new migration files. Backward compatibility is not required.
+- Always invoke subagent to run playwright browser automation tests
+- Tests must be run with `unset APP_ENV &&` prefix because Claude's shell loads .env which sets APP_ENV=local, overriding phpunit.xml.
+
+## Design Principles
+- DRY (Don't Repeat Yourself) - extract duplicated logic into methods, traits, or helpers
+- YAGNI (You Aren't Gonna Need It) - don't add functionality until actually needed
+- KISS (Keep It Simple) - prefer simple solutions over clever ones
+- Single Responsibility - each class/method should have one clear purpose
+- Fail Fast - validate early, use guard clauses: `if (!$condition) { return; }`
+- Explicit Over Implicit - be clear about intent, avoid magic behavior
+- Separation of Concerns - controllers handle HTTP, services handle business logic, models handle data
+- Immutability Preference - use value objects and immutable structures where practical
+- Security First - always validate/sanitize input, never trust client-side validation
+- Single Source of Truth - define config/constants/rules once (use config, enums, not magic strings)
+- Composition Over Inheritance - prefer traits and composition to deep inheritance
+
+## Filament 4
+Reference docs: [filament-4-cheatsheet.md](docs/filament-4-cheatsheet.md) & [filament-4-deprecated.md](docs/filament-4-deprecated.md)
+
+### Namespace Changes (v3 → v4)
+```php
+// Forms → Schemas (THE major change)
+use Filament\Forms\Form;                    // → Filament\Schemas\Schema
+use Filament\Forms\Components\Section;      // → Filament\Schemas\Components\Section
+use Filament\Forms\Get;                     // → Filament\Schemas\Components\Utilities\Get
+use Filament\Forms\Set;                     // → Filament\Schemas\Components\Utilities\Set
+
+// Table Actions moved to unified namespace
+use Filament\Tables\Actions\*;              // → Filament\Actions\*
+```
+
+### Method Signature Change
+```php
+// v3
+public function form(Form $form): Form { return $form->schema([...]); }
+
+// v4
+public function form(Schema $schema): Schema { return $schema->components([...]); }
+```
+
+### Key Deprecated → Replacement
+| Deprecated | Replacement |
+|------------|-------------|
+| `$label`, `getLabel()` (Resource) | `$modelLabel`, `getModelLabel()` |
+| `getCards()` (StatsWidget) | `getStats()` |
+| `cancel()` | `halt()` |
+| `modalSubheading()` | `modalDescription()` |
+| `fillForm()` | `data()` |
+| `form()` / `infolist()` (Action) | `schema()` |
+| `label()` (Repeater/Builder add) | `addActionLabel()` |
+| `removable()` | `deletable()` |
+| `sortable()` | `reorderable()` |
+| `height()`, `size()` (ImageColumn) | `imageHeight()`, `imageSize()` |
+| `rounded()` (ImageColumn/Entry) | `circular()` |
+| `options()` (IconColumn) | `icons()` |
+| `withoutDate()` / `withoutTime()` | `date(false)` / `time(false)` |
+| `cacheForm()`, `getForm()` | `cacheSchema()`, `getSchema()` |
+
+### Non-Static Properties in v4
+| Property | v4 Declaration |
+|----------|----------------|
+| `$view` (custom pages) | `protected string` (non-static) |
+| `$pollingInterval` (widgets) | `protected ?string` (non-static) |
+| `$heading` (ChartWidget) | `protected ?string` (non-static) |
+
+### Deprecated Classes
+| Deprecated | Replacement |
+|------------|-------------|
+| `LineChartWidget`, `BarChartWidget`, etc. | `ChartWidget` + `getType()` method |
+| `ButtonAction` | `Action::make()->button()` |
+| `BadgeColumn` | `TextColumn::make()->badge()` |
+| `BooleanColumn` | `IconColumn::make()->boolean()` |
+| `MultiSelect` | `Select::make()->multiple()` |
+| `RelationshipRepeater` | `Repeater::make()->relationship()` |
+
 <laravel-boost-guidelines>
 === foundation rules ===
 
@@ -9,13 +89,16 @@ The Laravel Boost guidelines are specifically curated by Laravel maintainers for
 This application is a Laravel application and its main Laravel ecosystems package & versions are below. You are an expert with them all. Ensure you abide by these specific packages & versions.
 
 - php - 8.4.16
+- filament/filament (FILAMENT) - v4
 - laravel/framework (LARAVEL) - v12
 - laravel/prompts (PROMPTS) - v0
+- livewire/livewire (LIVEWIRE) - v3
 - laravel/mcp (MCP) - v0
 - laravel/pint (PINT) - v1
 - laravel/sail (SAIL) - v1
 - pestphp/pest (PEST) - v4
 - phpunit/phpunit (PHPUNIT) - v12
+- tailwindcss (TAILWINDCSS) - v4
 
 ## Conventions
 - You must follow all existing code conventions used in this application. When creating or editing a file, check sibling files for the correct structure, approach, naming.
@@ -176,6 +259,89 @@ protected function isAccessible(User $user, ?string $path = null): bool
 - Casts can and likely should be set in a `casts()` method on a model rather than the `$casts` property. Follow existing conventions from other models.
 
 
+=== livewire/core rules ===
+
+## Livewire Core
+- Use the `search-docs` tool to find exact version specific documentation for how to write Livewire & Livewire tests.
+- Use the `php artisan make:livewire [Posts\CreatePost]` artisan command to create new components
+- State should live on the server, with the UI reflecting it.
+- All Livewire requests hit the Laravel backend, they're like regular HTTP requests. Always validate form data, and run authorization checks in Livewire actions.
+
+## Livewire Best Practices
+- Livewire components require a single root element.
+- Use `wire:loading` and `wire:dirty` for delightful loading states.
+- Add `wire:key` in loops:
+
+    ```blade
+    @foreach ($items as $item)
+        <div wire:key="item-{{ $item->id }}">
+            {{ $item->name }}
+        </div>
+    @endforeach
+    ```
+
+- Prefer lifecycle hooks like `mount()`, `updatedFoo()` for initialization and reactive side effects:
+
+<code-snippet name="Lifecycle hook examples" lang="php">
+    public function mount(User $user) { $this->user = $user; }
+    public function updatedSearch() { $this->resetPage(); }
+</code-snippet>
+
+
+## Testing Livewire
+
+<code-snippet name="Example Livewire component test" lang="php">
+    Livewire::test(Counter::class)
+        ->assertSet('count', 0)
+        ->call('increment')
+        ->assertSet('count', 1)
+        ->assertSee(1)
+        ->assertStatus(200);
+</code-snippet>
+
+
+    <code-snippet name="Testing a Livewire component exists within a page" lang="php">
+        $this->get('/posts/create')
+        ->assertSeeLivewire(CreatePost::class);
+    </code-snippet>
+
+
+=== livewire/v3 rules ===
+
+## Livewire 3
+
+### Key Changes From Livewire 2
+- These things changed in Livewire 2, but may not have been updated in this application. Verify this application's setup to ensure you conform with application conventions.
+    - Use `wire:model.live` for real-time updates, `wire:model` is now deferred by default.
+    - Components now use the `App\Livewire` namespace (not `App\Http\Livewire`).
+    - Use `$this->dispatch()` to dispatch events (not `emit` or `dispatchBrowserEvent`).
+    - Use the `components.layouts.app` view as the typical layout path (not `layouts.app`).
+
+### New Directives
+- `wire:show`, `wire:transition`, `wire:cloak`, `wire:offline`, `wire:target` are available for use. Use the documentation to find usage examples.
+
+### Alpine
+- Alpine is now included with Livewire, don't manually include Alpine.js.
+- Plugins included with Alpine: persist, intersect, collapse, and focus.
+
+### Lifecycle Hooks
+- You can listen for `livewire:init` to hook into Livewire initialization, and `fail.status === 419` for the page expiring:
+
+<code-snippet name="livewire:load example" lang="js">
+document.addEventListener('livewire:init', function () {
+    Livewire.hook('request', ({ fail }) => {
+        if (fail && fail.status === 419) {
+            alert('Your session expired');
+        }
+    });
+
+    Livewire.hook('message.failed', (message, component) => {
+        console.error(message);
+    });
+});
+</code-snippet>
+
+
 === pint/core rules ===
 
 ## Laravel Pint Code Formatter
@@ -280,4 +446,71 @@ $pages = visit(['/', '/about', '/contact']);
 
 $pages->assertNoJavascriptErrors()->assertNoConsoleLogs();
 </code-snippet>
+
+
+=== tailwindcss/core rules ===
+
+## Tailwind Core
+
+- Use Tailwind CSS classes to style HTML, check and use existing tailwind conventions within the project before writing your own.
+- Offer to extract repeated patterns into components that match the project's conventions (i.e. Blade, JSX, Vue, etc..)
+- Think through class placement, order, priority, and defaults - remove redundant classes, add classes to parent or child carefully to limit repetition, group elements logically
+- You can use the `search-docs` tool to get exact examples from the official documentation when needed.
+
+### Spacing
+- When listing items, use gap utilities for spacing, don't use margins.
+
+    <code-snippet name="Valid Flex Gap Spacing Example" lang="html">
+        <div class="flex gap-8">
+            <div>Superior</div>
+            <div>Michigan</div>
+            <div>Erie</div>
+        </div>
+    </code-snippet>
+
+
+### Dark Mode
+- If existing pages and components support dark mode, new pages and components must support dark mode in a similar way, typically using `dark:`.
+
+
+=== tailwindcss/v4 rules ===
+
+## Tailwind 4
+
+- Always use Tailwind CSS v4 - do not use the deprecated utilities.
+- `corePlugins` is not supported in Tailwind v4.
+- In Tailwind v4, configuration is CSS-first using the `@theme` directive — no separate `tailwind.config.js` file is needed.
+<code-snippet name="Extending Theme in CSS" lang="css">
+@theme {
+  --color-brand: oklch(0.72 0.11 178);
+}
+</code-snippet>
+
+- In Tailwind v4, you import Tailwind using a regular CSS `@import` statement, not using the `@tailwind` directives used in v3:
+
+<code-snippet name="Tailwind v4 Import Tailwind Diff" lang="diff">
+   - @tailwind base;
+   - @tailwind components;
+   - @tailwind utilities;
+   + @import "tailwindcss";
+</code-snippet>
+
+
+### Replaced Utilities
+- Tailwind v4 removed deprecated utilities. Do not use the deprecated option - use the replacement.
+- Opacity values are still numeric.
+
+| Deprecated |	Replacement |
+|------------+--------------|
+| bg-opacity-* | bg-black/* |
+| text-opacity-* | text-black/* |
+| border-opacity-* | border-black/* |
+| divide-opacity-* | divide-black/* |
+| ring-opacity-* | ring-black/* |
+| placeholder-opacity-* | placeholder-black/* |
+| flex-shrink-* | shrink-* |
+| flex-grow-* | grow-* |
+| overflow-ellipsis | text-ellipsis |
+| decoration-slice | box-decoration-slice |
+| decoration-clone | box-decoration-clone |
 </laravel-boost-guidelines>

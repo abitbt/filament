@@ -1,0 +1,5 @@
+{
+  "name": "filament-4",
+  "version": "1.0.0",
+  "description": "Filament 4 development skill for Laravel projects - covers v3→v4 migration, components, actions, and best practices"
+}

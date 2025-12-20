@@ -1,0 +1,350 @@
+<?php
+
+/**
+ * Complete Filament 4 Resource Example
+ * Based on official Filament demo app patterns
+ *
+ * Directory Structure:
+ * Resources/Blog/Posts/
+ * ├── PostResource.php          # This file
+ * ├── Pages/
+ * │   ├── ListPosts.php
+ * │   ├── CreatePost.php
+ * │   ├── EditPost.php
+ * │   └── ViewPost.php
+ * ├── Schemas/
+ * │   ├── PostForm.php          # Extracted form schema
+ * │   └── PostInfolist.php      # Extracted infolist schema
+ * └── Tables/
+ *     └── PostsTable.php        # Extracted table config
+ */
+
+namespace App\Filament\Resources\Blog\Posts;
+
+use App\Filament\Resources\Blog\Posts\Pages;
+use App\Filament\Resources\Blog\Posts\Schemas\PostForm;
+use App\Filament\Resources\Blog\Posts\Tables\PostsTable;
+use App\Models\Blog\Post;
+use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+
+class PostResource extends Resource
+{
+    protected static ?string $model = Post::class;
+
+    protected static ?string $slug = 'blog/posts';
+
+    protected static ?string $modelLabel = 'Post';              // Not $label
+
+    protected static ?string $pluralModelLabel = 'Posts';       // Not $pluralLabel
+
+    protected static ?string $navigationIcon = 'heroicon-o-document-text';
+
+    protected static ?string $navigationGroup = 'Blog';
+
+    protected static ?int $navigationSort = 0;
+
+    protected static ?string $recordTitleAttribute = 'title';
+
+    /**
+     * Form Schema - delegates to extracted PostForm class
+     */
+    public static function form(Schema $schema): Schema
+    {
+        return PostForm::configure($schema);
+    }
+
+    /**
+     * Table Configuration - delegates to extracted PostsTable class
+     */
+    public static function table(Table $table): Table
+    {
+        return PostsTable::configure($table);
+    }
+
+    /**
+     * Global Search Configuration
+     */
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['title', 'slug', 'author.name', 'category.name'];
+    }
+
+    public static function getGlobalSearchEloquentQuery(): Builder
+    {
+        return parent::getGlobalSearchEloquentQuery()->with(['author', 'category']);
+    }
+
+    public static function getGlobalSearchResultDetails(Model $record): array
+    {
+        return [
+            'Author' => $record->author?->name,
+            'Category' => $record->category?->name,
+        ];
+    }
+
+    /**
+     * Pages Registration
+     */
+    public static function getPages(): array
+    {
+        return [
+            'index' => Pages\ListPosts::route('/'),
+            'create' => Pages\CreatePost::route('/create'),
+            'edit' => Pages\EditPost::route('/{record}/edit'),
+            'view' => Pages\ViewPost::route('/{record}'),
+        ];
+    }
+}
+
+// =============================================================================
+// Schemas/PostForm.php - Extracted Form Schema
+// =============================================================================
+
+namespace App\Filament\Resources\Blog\Posts\Schemas;
+
+use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\RichEditor;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
+use Filament\Forms\Components\SpatieTagsInput;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
+use Filament\Schemas\Components\Group;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Set;
+use Filament\Schemas\Schema;
+use Illuminate\Support\Str;
+
+class PostForm
+{
+    public static function configure(Schema $schema): Schema
+    {
+        return $schema->components([
+            // Main content section (left column on desktop)
+            Group::make()
+                ->columnSpan(['lg' => 2])
+                ->schema([
+                    Section::make()
+                        ->schema([
+                            TextInput::make('title')
+                                ->required()
+                                ->live(onBlur: true)
+                                ->maxLength(255)
+                                ->afterStateUpdated(function (string $operation, $state, Set $set) {
+                                    if ($operation === 'create') {
+                                        $set('slug', Str::slug($state));
+                                    }
+                                }),
+
+                            TextInput::make('slug')
+                                ->required()
+                                ->maxLength(255)
+                                ->unique(ignoreRecord: true),
+
+                            RichEditor::make('content')
+                                ->required()
+                                ->columnSpanFull(),
+                        ])
+                        ->columns(2),
+
+                    Section::make('Media')
+                        ->schema([
+                            SpatieMediaLibraryFileUpload::make('image')
+                                ->collection('post-images')
+                                ->image()
+                                ->imageEditor(),
+                        ])
+                        ->collapsible(),
+                ]),
+
+            // Sidebar section (right column on desktop)
+            Group::make()
+                ->columnSpan(['lg' => 1])
+                ->schema([
+                    Section::make('Status')
+                        ->schema([
+                            Toggle::make('is_published')
+                                ->label('Published')
+                                ->default(false),
+
+                            DateTimePicker::make('published_at')
+                                ->label('Publish Date')
+                                ->default(now()),
+                        ]),
+
+                    Section::make('Associations')
+                        ->schema([
+                            Select::make('blog_author_id')
+                                ->relationship('author', 'name')
+                                ->searchable()
+                                ->preload()
+                                ->required(),
+
+                            Select::make('blog_category_id')
+                                ->relationship('category', 'name')
+                                ->searchable()
+                                ->preload()
+                                ->required(),
+
+                            SpatieTagsInput::make('tags'),
+                        ]),
+                ]),
+        ])->columns(3);
+    }
+}
+
+// =============================================================================
+// Tables/PostsTable.php - Extracted Table Configuration
+// =============================================================================
+
+namespace App\Filament\Resources\Blog\Posts\Tables;
+
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\SpatieMediaLibraryImageColumn;
+use Filament\Tables\Columns\SpatieTagsColumn;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+
+class PostsTable
+{
+    public static function configure(Table $table): Table
+    {
+        return $table
+            ->columns([
+                SpatieMediaLibraryImageColumn::make('image')
+                    ->collection('post-images')
+                    ->circular(),
+
+                TextColumn::make('title')
+                    ->searchable()
+                    ->sortable(),
+
+                TextColumn::make('author.name')
+                    ->label('Author')
+                    ->searchable()
+                    ->sortable(),
+
+                TextColumn::make('category.name')
+                    ->label('Category')
+                    ->badge()
+                    ->searchable()
+                    ->sortable(),
+
+                IconColumn::make('is_published')
+                    ->boolean()
+                    ->label('Published'),
+
+                TextColumn::make('published_at')
+                    ->label('Publish Date')
+                    ->date()
+                    ->sortable(),
+
+                SpatieTagsColumn::make('tags')
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('created_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+            ])
+            ->filters([
+                SelectFilter::make('author')
+                    ->relationship('author', 'name')
+                    ->searchable()
+                    ->preload(),
+
+                SelectFilter::make('category')
+                    ->relationship('category', 'name')
+                    ->searchable()
+                    ->preload(),
+
+                Filter::make('published')
+                    ->query(fn (Builder $query) => $query->where('is_published', true)),
+            ])
+            ->recordActions([
+                ViewAction::make(),
+                EditAction::make(),
+                DeleteAction::make(),
+            ])
+            ->groupedBulkActions([
+                DeleteBulkAction::make(),
+            ])
+            ->defaultSort('published_at', 'desc');
+    }
+}
+
+// =============================================================================
+// Pages/ListPosts.php - List Page with Widgets
+// =============================================================================
+
+namespace App\Filament\Resources\Blog\Posts\Pages;
+
+use App\Filament\Resources\Blog\Posts\PostResource;
+use App\Filament\Resources\Blog\Posts\Widgets\PostStats;
+use Filament\Actions\CreateAction;
+use Filament\Resources\Pages\ListRecords;
+use Filament\Tables\Table\Concerns\HasDeferredLoading;
+
+class ListPosts extends ListRecords
+{
+    use HasDeferredLoading;
+
+    protected static string $resource = PostResource::class;
+
+    protected function getActions(): array
+    {
+        return [
+            CreateAction::make(),
+        ];
+    }
+
+    protected function getHeaderWidgets(): array
+    {
+        return [
+            PostStats::class,
+        ];
+    }
+}
+
+// =============================================================================
+// Pages/ViewPost.php - View Page with Custom Title
+// =============================================================================
+
+namespace App\Filament\Resources\Blog\Posts\Pages;
+
+use App\Filament\Resources\Blog\Posts\PostResource;
+use App\Filament\Resources\Blog\Posts\Schemas\PostInfolist;
+use Filament\Resources\Pages\ViewRecord;
+use Filament\Schemas\Schema;
+use Illuminate\Contracts\Support\Htmlable;
+
+class ViewPost extends ViewRecord
+{
+    protected static string $resource = PostResource::class;
+
+    public function getTitle(): string|Htmlable
+    {
+        return $this->getRecord()->title;
+    }
+
+    public function infolist(Schema $schema): Schema
+    {
+        return PostInfolist::configure($schema);
+    }
+
+    protected function getActions(): array
+    {
+        return [];
+    }
+}
