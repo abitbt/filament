@@ -20,63 +20,188 @@
 - Composition Over Inheritance - prefer traits and composition to deep inheritance
 
 ## Filament 4
-Reference docs: [filament-4-cheatsheet.md](docs/filament-4-cheatsheet.md) & [filament-4-deprecated.md](docs/filament-4-deprecated.md)
 
 ### Namespace Changes (v3 → v4)
 ```php
-// Forms → Schemas (THE major change)
-use Filament\Forms\Form;                    // → Filament\Schemas\Schema
-use Filament\Forms\Components\Section;      // → Filament\Schemas\Components\Section
-use Filament\Forms\Get;                     // → Filament\Schemas\Components\Utilities\Get
-use Filament\Forms\Set;                     // → Filament\Schemas\Components\Utilities\Set
-
-// Table Actions moved to unified namespace
-use Filament\Tables\Actions\*;              // → Filament\Actions\*
+use Filament\Schemas\Schema;                        // was Filament\Forms\Form
+use Filament\Schemas\Components\Section;            // was Filament\Forms\Components\Section
+use Filament\Schemas\Components\Utilities\Get;      // was Filament\Forms\Get
+use Filament\Schemas\Components\Utilities\Set;      // was Filament\Forms\Set
+use Filament\Actions\Action;                        // Table actions moved here
 ```
 
-### Method Signature Change
-```php
-// v3
-public function form(Form $form): Form { return $form->schema([...]); }
-
-// v4
-public function form(Schema $schema): Schema { return $schema->components([...]); }
-```
-
-### Key Deprecated → Replacement
-| Deprecated | Replacement |
+### Critical Deprecations
+| Deprecated | Use Instead |
 |------------|-------------|
-| `$label`, `getLabel()` (Resource) | `$modelLabel`, `getModelLabel()` |
+| `Form $form` | `Schema $schema` |
+| `$form->schema([...])` | `$schema->components([...])` |
+| `getLabel()` / `$label` | `getModelLabel()` / `$modelLabel` |
 | `getCards()` (StatsWidget) | `getStats()` |
 | `cancel()` | `halt()` |
 | `modalSubheading()` | `modalDescription()` |
 | `fillForm()` | `data()` |
-| `form()` / `infolist()` (Action) | `schema()` |
-| `label()` (Repeater/Builder add) | `addActionLabel()` |
+| `form()` on actions | `schema()` |
 | `removable()` | `deletable()` |
 | `sortable()` | `reorderable()` |
-| `height()`, `size()` (ImageColumn) | `imageHeight()`, `imageSize()` |
-| `rounded()` (ImageColumn/Entry) | `circular()` |
+| `height()` / `size()` (ImageColumn) | `imageHeight()` / `imageSize()` |
+| `rounded()` | `circular()` |
 | `options()` (IconColumn) | `icons()` |
 | `withoutDate()` / `withoutTime()` | `date(false)` / `time(false)` |
-| `cacheForm()`, `getForm()` | `cacheSchema()`, `getSchema()` |
+| `cacheForm()` / `getForm()` | `cacheSchema()` / `getSchema()` |
+| Specific chart widgets | `ChartWidget` with `getType()` |
 
-### Non-Static Properties in v4
-| Property | v4 Declaration |
-|----------|----------------|
-| `$view` (custom pages) | `protected string` (non-static) |
-| `$pollingInterval` (widgets) | `protected ?string` (non-static) |
-| `$heading` (ChartWidget) | `protected ?string` (non-static) |
+### Forms / Schema
+```php
+public function form(Schema $schema): Schema
+{
+    return $schema->components([
+        TextInput::make('name')->required()->maxLength(255),
+        Select::make('status')->options([...])->live(),
+        Toggle::make('published'),
+    ]);
+}
+```
 
-### Deprecated Classes
-| Deprecated | Replacement |
-|------------|-------------|
-| `LineChartWidget`, `BarChartWidget`, etc. | `ChartWidget` + `getType()` method |
-| `ButtonAction` | `Action::make()->button()` |
-| `BadgeColumn` | `TextColumn::make()->badge()` |
-| `BooleanColumn` | `IconColumn::make()->boolean()` |
-| `MultiSelect` | `Select::make()->multiple()` |
-| `RelationshipRepeater` | `Repeater::make()->relationship()` |
+### Reactive Fields & Visibility
+```php
+// Server-side reactivity
+Select::make('type')
+    ->live()                              // Re-render on change
+    ->live(onBlur: true)                  // Re-render on blur
+    ->live(debounce: 500)                 // Debounced
+    ->afterStateUpdated(fn (Set $set, ?string $state) =>
+        $set('slug', Str::slug($state))
+    )
+
+// JavaScript-based (no server request)
+TextInput::make('field')
+    ->hiddenJs(<<<'JS'
+        $get('type') !== 'custom'
+    JS)
+```
+
+### Utility Injection
+```php
+function (
+    Get $get,              // Get other field values
+    Set $set,              // Set other field values
+    mixed $state,          // Current field state
+    ?Model $record,        // Current Eloquent record
+    string $operation,     // 'create', 'edit', 'view'
+) {
+    // Type-safe getters
+    $get->string('email');
+    $get->integer('age');
+    $get->boolean('is_admin');
+    $get->array('tags');
+    $get->filled('email');  // bool
+}
+```
+
+### Tables
+```php
+public function table(Table $table): Table
+{
+    return $table
+        ->columns([
+            TextColumn::make('title')->searchable()->sortable(),
+            TextColumn::make('author.name'),
+            IconColumn::make('is_featured')->boolean(),
+        ])
+        ->filters([
+            SelectFilter::make('status')->options([...]),
+        ])
+        ->recordActions([
+            Action::make('approve')->action(fn ($record) => $record->approve()),
+        ])
+        ->defaultSort('created_at', 'desc');
+}
+```
+
+### Actions & Modals
+```php
+Action::make('create')
+    ->icon('heroicon-o-plus')
+    ->color('primary')                     // primary, danger, warning, success, gray
+    ->requiresConfirmation()
+    ->modalHeading('Create Item')
+    ->modalDescription('Fill in the details')
+    ->schema([                             // NOT form()
+        TextInput::make('name')->required(),
+    ])
+    ->action(fn (array $data) => Model::create($data))
+```
+
+### Widgets
+```php
+class StatsOverview extends StatsOverviewWidget
+{
+    protected ?string $pollingInterval = '10s';  // Non-static in v4
+
+    protected function getStats(): array         // NOT getCards()
+    {
+        return [
+            Stat::make('Users', User::count())
+                ->description('12% increase')
+                ->color('success')
+                ->chart([7, 2, 10, 3, 15, 4, 17]),
+        ];
+    }
+}
+
+class RevenueChart extends ChartWidget
+{
+    protected ?string $heading = 'Revenue';      // Non-static in v4
+
+    protected function getType(): string { return 'line'; }
+    protected function getData(): array { return [...]; }
+}
+```
+
+### Layouts
+```php
+// Grid
+Grid::make(['default' => 1, 'md' => 2, 'lg' => 3])->schema([...])
+
+// Column span
+TextInput::make('bio')->columnSpanFull()
+
+// Section
+Section::make('Details')
+    ->description('Basic info')
+    ->collapsible()
+    ->columns(2)
+    ->schema([...])
+
+// Tabs
+Tabs::make('Settings')->tabs([
+    Tabs\Tab::make('General')->schema([...]),
+    Tabs\Tab::make('Advanced')->schema([...]),
+])
+```
+
+### Validation
+```php
+TextInput::make('email')
+    ->required()
+    ->email()
+    ->unique('users', 'email', ignoreRecord: true)
+    ->rules([
+        fn (Get $get): Closure => function ($attribute, $value, $fail) use ($get) {
+            if ($get('type') === 'admin' && !str_ends_with($value, '@company.com')) {
+                $fail('Admin emails must use company domain.');
+            }
+        },
+    ])
+```
+
+### Artisan Commands
+```bash
+php artisan make:filament-resource Post --generate  # With form/table
+php artisan make:filament-page Settings
+php artisan make:filament-widget Stats --stats-overview
+php artisan make:filament-widget Revenue --chart
+```
 
 <laravel-boost-guidelines>
 === foundation rules ===
@@ -89,10 +214,9 @@ The Laravel Boost guidelines are specifically curated by Laravel maintainers for
 This application is a Laravel application and its main Laravel ecosystems package & versions are below. You are an expert with them all. Ensure you abide by these specific packages & versions.
 
 - php - 8.4.16
-- filament/filament (FILAMENT) - v4
 - laravel/framework (LARAVEL) - v12
 - laravel/prompts (PROMPTS) - v0
-- livewire/livewire (LIVEWIRE) - v3
+- larastan/larastan (LARASTAN) - v3
 - laravel/mcp (MCP) - v0
 - laravel/pint (PINT) - v1
 - laravel/sail (SAIL) - v1
@@ -191,6 +315,14 @@ protected function isAccessible(User $user, ?string $path = null): bool
 - Typically, keys in an Enum should be TitleCase. For example: `FavoritePerson`, `BestLake`, `Monthly`.
 
 
+=== herd rules ===
+
+## Laravel Herd
+
+- The application is served by Laravel Herd and will be available at: https?://[kebab-case-project-dir].test. Use the `get-absolute-url` tool to generate URLs for the user to ensure valid URLs.
+- You must not run any commands to make the site available via HTTP(s). It is _always_ available through Laravel Herd.
+
+
 === laravel/core rules ===
 
 ## Do Things the Laravel Way
@@ -257,89 +389,6 @@ protected function isAccessible(User $user, ?string $path = null): bool
 
 ### Models
 - Casts can and likely should be set in a `casts()` method on a model rather than the `$casts` property. Follow existing conventions from other models.
-
-
-=== livewire/core rules ===
-
-## Livewire Core
-- Use the `search-docs` tool to find exact version specific documentation for how to write Livewire & Livewire tests.
-- Use the `php artisan make:livewire [Posts\CreatePost]` artisan command to create new components
-- State should live on the server, with the UI reflecting it.
-- All Livewire requests hit the Laravel backend, they're like regular HTTP requests. Always validate form data, and run authorization checks in Livewire actions.
-
-## Livewire Best Practices
-- Livewire components require a single root element.
-- Use `wire:loading` and `wire:dirty` for delightful loading states.
-- Add `wire:key` in loops:
-
-    ```blade
-    @foreach ($items as $item)
-        <div wire:key="item-{{ $item->id }}">
-            {{ $item->name }}
-        </div>
-    @endforeach
-    ```
-
-- Prefer lifecycle hooks like `mount()`, `updatedFoo()` for initialization and reactive side effects:
-
-<code-snippet name="Lifecycle hook examples" lang="php">
-    public function mount(User $user) { $this->user = $user; }
-    public function updatedSearch() { $this->resetPage(); }
-</code-snippet>
-
-
-## Testing Livewire
-
-<code-snippet name="Example Livewire component test" lang="php">
-    Livewire::test(Counter::class)
-        ->assertSet('count', 0)
-        ->call('increment')
-        ->assertSet('count', 1)
-        ->assertSee(1)
-        ->assertStatus(200);
-</code-snippet>
-
-
-    <code-snippet name="Testing a Livewire component exists within a page" lang="php">
-        $this->get('/posts/create')
-        ->assertSeeLivewire(CreatePost::class);
-    </code-snippet>
-
-
-=== livewire/v3 rules ===
-
-## Livewire 3
-
-### Key Changes From Livewire 2
-- These things changed in Livewire 2, but may not have been updated in this application. Verify this application's setup to ensure you conform with application conventions.
-    - Use `wire:model.live` for real-time updates, `wire:model` is now deferred by default.
-    - Components now use the `App\Livewire` namespace (not `App\Http\Livewire`).
-    - Use `$this->dispatch()` to dispatch events (not `emit` or `dispatchBrowserEvent`).
-    - Use the `components.layouts.app` view as the typical layout path (not `layouts.app`).
-
-### New Directives
-- `wire:show`, `wire:transition`, `wire:cloak`, `wire:offline`, `wire:target` are available for use. Use the documentation to find usage examples.
-
-### Alpine
-- Alpine is now included with Livewire, don't manually include Alpine.js.
-- Plugins included with Alpine: persist, intersect, collapse, and focus.
-
-### Lifecycle Hooks
-- You can listen for `livewire:init` to hook into Livewire initialization, and `fail.status === 419` for the page expiring:
-
-<code-snippet name="livewire:load example" lang="js">
-document.addEventListener('livewire:init', function () {
-    Livewire.hook('request', ({ fail }) => {
-        if (fail && fail.status === 419) {
-            alert('Your session expired');
-        }
-    });
-
-    Livewire.hook('message.failed', (message, component) => {
-        console.error(message);
-    });
-});
-</code-snippet>
 
 
 === pint/core rules ===
