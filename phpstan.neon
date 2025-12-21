@@ -4,5 +4,6 @@ includes:
 parameters:
     paths:
         - app/
+        - database/factories/
 
     level: 8
