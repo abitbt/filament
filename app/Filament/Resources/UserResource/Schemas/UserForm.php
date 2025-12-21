@@ -74,12 +74,14 @@ class UserForm
                 ->relationship('role', 'name')
                 ->searchable()
                 ->preload()
-                ->required(),
+                ->required()
+                ->native(false),
 
             Select::make('status')
                 ->options(UserStatus::class)
                 ->default(UserStatus::Active)
-                ->required(),
+                ->required()
+                ->native(false),
         ];
     }
 }

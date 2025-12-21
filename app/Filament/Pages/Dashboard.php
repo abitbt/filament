@@ -38,12 +38,14 @@ class Dashboard extends BaseDashboard
                         DatePicker::make('startDate')
                             ->label('From')
                             ->maxDate(fn (Get $get) => $get('endDate') ?: now())
-                            ->placeholder('Start date'),
+                            ->placeholder('Start date')
+                            ->native(false),
                         DatePicker::make('endDate')
                             ->label('To')
                             ->minDate(fn (Get $get) => $get('startDate') ?: null)
                             ->maxDate(now())
-                            ->placeholder('End date'),
+                            ->placeholder('End date')
+                            ->native(false),
                         Select::make('status')
                             ->label('User Status')
                             ->options([
@@ -51,7 +53,8 @@ class Dashboard extends BaseDashboard
                                 'active' => 'Active Only',
                                 'inactive' => 'Inactive Only',
                             ])
-                            ->default('all'),
+                            ->default('all')
+                            ->native(false),
                     ])
                     ->columns(3)
                     ->columnSpanFull(),

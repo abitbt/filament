@@ -3,7 +3,7 @@
 - Run `./vendor/bin/phpstan analyse` and fix any errors before committing.
 - Run `./vendor/bin/pint` before commits (code formatting required)
 - This is a New project: Modify existing migrations directly instead of creating new migration files. Backward compatibility is not required.
-- Always invoke subagent to run playwright browser automation tests
+- Always invoke subagent to run playwright
 - Tests must be run with `unset APP_ENV &&` prefix because Claude's shell loads .env which sets APP_ENV=local, overriding phpunit.xml.
 
 ## Design Principles

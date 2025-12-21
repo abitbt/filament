@@ -9,6 +9,7 @@
 /.idea
 /.nova
 /.phpunit.cache
+/.playwright-mcp
 /.vscode
 /.zed
 /auth.json
@@ -22,3 +23,5 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+/database/*.sqlite
+/database/*.sqlite-journal

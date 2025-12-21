@@ -1,9 +1,14 @@
 includes:
     - vendor/larastan/larastan/extension.neon
+    - vendor/phpstan/phpstan-deprecation-rules/rules.neon
 
 parameters:
     paths:
         - app/
         - database/factories/
+        - bootstrap/app.php
+        - bootstrap/providers.php
+        - resources/views/
+        - routes/
 
     level: 8

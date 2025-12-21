@@ -41,6 +41,7 @@ class AdminPanelProvider extends PanelProvider
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
+            ->discoverClusters(in: app_path('Filament/Clusters'), for: 'App\\Filament\\Clusters')
             ->navigationGroups($this->sidebarNavigationGroups())
             ->databaseNotifications()
             ->databaseNotificationsPolling('30s')
@@ -74,6 +75,10 @@ class AdminPanelProvider extends PanelProvider
             NavigationGroup::make()
                 ->label('System')
                 ->icon('heroicon-o-cog-6-tooth')
+                ->collapsed(true),
+            NavigationGroup::make()
+                ->label('Demo')
+                ->icon('heroicon-o-sparkles')
                 ->collapsed(true),
         ];
     }
