@@ -35,6 +35,8 @@ class AdminPanelProvider extends PanelProvider
                 'warning' => Color::Amber,
             ])
             ->brandName('Admin Panel')
+            ->topbar(false)
+            ->breadcrumbs(false)
             ->maxContentWidth(Width::Full)
             ->sidebarWidth('18rem')
             ->sidebarCollapsibleOnDesktop()
@@ -71,7 +73,7 @@ class AdminPanelProvider extends PanelProvider
             NavigationGroup::make()
                 ->label('User Management')
                 ->icon('heroicon-o-users')
-                ->collapsed(false),
+                ->collapsed(true),
             NavigationGroup::make()
                 ->label('System')
                 ->icon('heroicon-o-cog-6-tooth')
