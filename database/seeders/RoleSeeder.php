@@ -47,7 +47,6 @@ class RoleSeeder extends Seeder
             PermissionEnum::RolesRead->value,
             PermissionEnum::RolesWrite->value,
             PermissionEnum::ActivityLogsRead->value,
-            PermissionEnum::ActivityLogsWrite->value,
         ])->get();
         $editor->permissions()->sync($editorPermissions);
 

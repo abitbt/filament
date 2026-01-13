@@ -3,8 +3,8 @@
 namespace App\Filament\Widgets;
 
 use App\Enums\UserStatus;
+use App\Filament\Widgets\Concerns\HasDateRangeFilter;
 use App\Models\User;
-use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Filament\Widgets\ChartWidget;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
@@ -22,6 +22,7 @@ use Filament\Widgets\Concerns\InteractsWithPageFilters;
  */
 class UserGrowthChart extends ChartWidget
 {
+    use HasDateRangeFilter;
     use InteractsWithPageFilters;
 
     protected ?string $heading = 'User Registrations';
@@ -42,17 +43,9 @@ class UserGrowthChart extends ChartWidget
 
     protected function getData(): array
     {
-        // Get date range from dashboard filters (or default to last 30 days)
-        $startDate = ! is_null($this->pageFilters['startDate'] ?? null)
-            ? Carbon::parse($this->pageFilters['startDate'])
-            : now()->subDays(30);
-
-        $endDate = ! is_null($this->pageFilters['endDate'] ?? null)
-            ? Carbon::parse($this->pageFilters['endDate'])
-            : now();
-
-        // Get status filter
-        $statusFilter = $this->pageFilters['status'] ?? 'all';
+        $startDate = $this->getFilterStartDateOrDefault(30);
+        $endDate = $this->getFilterEndDate();
+        $statusFilter = $this->getFilterStatus();
 
         // Build query
         $query = User::query()

@@ -14,9 +14,8 @@ enum Permission: string
     case RolesWrite = 'roles.write';
     case RolesDelete = 'roles.delete';
 
-    // Activity Logs
+    // Activity Logs (read-only - logs are system-generated and immutable)
     case ActivityLogsRead = 'activity_logs.read';
-    case ActivityLogsWrite = 'activity_logs.write';
     case ActivityLogsDelete = 'activity_logs.delete';
 
     public function getGroup(): string

@@ -3,14 +3,14 @@
 namespace App\Observers;
 
 use App\Enums\ActivityEvent;
-use App\Models\ActivityLog;
 use App\Models\User;
+use App\Services\ActivityLogger;
 
 class UserObserver
 {
     public function created(User $user): void
     {
-        $this->log(ActivityEvent::Created, $user, "Created user: {$user->name}");
+        ActivityLogger::log(ActivityEvent::Created, "Created user: {$user->name}", $user);
     }
 
     public function updated(User $user): void
@@ -22,43 +22,30 @@ class UserObserver
             return;
         }
 
-        // Don't log password in properties
-        $safeChanges = $changes;
-        if (isset($safeChanges['password'])) {
-            $safeChanges['password'] = '[REDACTED]';
+        // Redact password in both old and new values
+        $safeOldValues = array_intersect_key($user->getOriginal(), $changes);
+        $safeNewValues = $changes;
+
+        if (isset($safeOldValues['password'])) {
+            $safeOldValues['password'] = '[REDACTED]';
+        }
+        if (isset($safeNewValues['password'])) {
+            $safeNewValues['password'] = '[REDACTED]';
         }
 
-        $this->log(
+        ActivityLogger::log(
             ActivityEvent::Updated,
-            $user,
             "Updated user: {$user->name}",
+            $user,
             [
-                'old' => array_intersect_key($user->getOriginal(), $changes),
-                'new' => $safeChanges,
+                'old' => $safeOldValues,
+                'new' => $safeNewValues,
             ]
         );
     }
 
     public function deleted(User $user): void
     {
-        $this->log(ActivityEvent::Deleted, $user, "Deleted user: {$user->name}");
-    }
-
-    /**
-     * @param  array<string, mixed>|null  $properties
-     */
-    protected function log(ActivityEvent $event, User $user, string $description, ?array $properties = null): void
-    {
-        ActivityLog::create([
-            'user_id' => auth()->id(),
-            'subject_type' => User::class,
-            'subject_id' => $user->id,
-            'event' => $event,
-            'description' => $description,
-            'properties' => $properties,
-            'ip_address' => request()->ip(),
-            'user_agent' => request()->userAgent(),
-            'created_at' => now(),
-        ]);
+        ActivityLogger::log(ActivityEvent::Deleted, "Deleted user: {$user->name}", $user);
     }
 }

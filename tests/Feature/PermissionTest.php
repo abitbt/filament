@@ -16,7 +16,7 @@ it('groups permissions correctly', function () {
     expect($grouped)->toHaveKeys(['Users', 'Roles', 'Activity Logs']);
     expect($grouped['Users'])->toHaveCount(3);
     expect($grouped['Roles'])->toHaveCount(3);
-    expect($grouped['Activity Logs'])->toHaveCount(3);
+    expect($grouped['Activity Logs'])->toHaveCount(2); // read + delete only (logs are immutable)
 });
 
 it('returns permission labels correctly', function () {
@@ -59,7 +59,7 @@ it('provides options for select fields', function () {
     $options = Permission::options();
 
     expect($options)->toBeArray();
-    expect($options)->toHaveCount(9);
+    expect($options)->toHaveCount(8); // 9 - 1 (ActivityLogsWrite removed)
     expect($options['users.read'])->toBe('Read');
 });
 

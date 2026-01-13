@@ -3,8 +3,8 @@
 namespace App\Filament\Widgets;
 
 use App\Enums\ActivityEvent;
+use App\Filament\Widgets\Concerns\HasDateRangeFilter;
 use App\Models\ActivityLog;
-use Carbon\Carbon;
 use Filament\Widgets\ChartWidget;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
 
@@ -21,6 +21,7 @@ use Filament\Widgets\Concerns\InteractsWithPageFilters;
  */
 class ActivityBreakdownChart extends ChartWidget
 {
+    use HasDateRangeFilter;
     use InteractsWithPageFilters;
 
     protected ?string $heading = 'Activity Breakdown';
@@ -41,14 +42,8 @@ class ActivityBreakdownChart extends ChartWidget
 
     protected function getData(): array
     {
-        // Get date range from dashboard filters
-        $startDate = ! is_null($this->pageFilters['startDate'] ?? null)
-            ? Carbon::parse($this->pageFilters['startDate'])
-            : now()->subDays(30);
-
-        $endDate = ! is_null($this->pageFilters['endDate'] ?? null)
-            ? Carbon::parse($this->pageFilters['endDate'])
-            : now();
+        $startDate = $this->getFilterStartDateOrDefault(30);
+        $endDate = $this->getFilterEndDate();
 
         // Count activities by event type
         $activities = ActivityLog::query()

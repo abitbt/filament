@@ -3,10 +3,10 @@
 namespace App\Filament\Widgets;
 
 use App\Enums\UserStatus;
+use App\Filament\Widgets\Concerns\HasDateRangeFilter;
 use App\Models\ActivityLog;
 use App\Models\Role;
 use App\Models\User;
-use Carbon\Carbon;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
@@ -25,6 +25,7 @@ use Illuminate\Support\Number;
  */
 class StatsOverview extends StatsOverviewWidget
 {
+    use HasDateRangeFilter;
     use InteractsWithPageFilters;
 
     protected ?string $pollingInterval = '30s';
@@ -33,16 +34,9 @@ class StatsOverview extends StatsOverviewWidget
 
     protected function getStats(): array
     {
-        // Get date range from dashboard filters
-        $startDate = ! is_null($this->pageFilters['startDate'] ?? null)
-            ? Carbon::parse($this->pageFilters['startDate'])
-            : null;
-
-        $endDate = ! is_null($this->pageFilters['endDate'] ?? null)
-            ? Carbon::parse($this->pageFilters['endDate'])
-            : now();
-
-        $statusFilter = $this->pageFilters['status'] ?? 'all';
+        $startDate = $this->getFilterStartDate();
+        $endDate = $this->getFilterEndDate();
+        $statusFilter = $this->getFilterStatus();
 
         // Build user query with filters
         $userQuery = User::query();

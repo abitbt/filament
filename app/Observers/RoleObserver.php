@@ -3,14 +3,14 @@
 namespace App\Observers;
 
 use App\Enums\ActivityEvent;
-use App\Models\ActivityLog;
 use App\Models\Role;
+use App\Services\ActivityLogger;
 
 class RoleObserver
 {
     public function created(Role $role): void
     {
-        $this->log(ActivityEvent::Created, $role, "Created role: {$role->name}");
+        ActivityLogger::log(ActivityEvent::Created, "Created role: {$role->name}", $role);
     }
 
     public function updated(Role $role): void
@@ -22,10 +22,10 @@ class RoleObserver
             return;
         }
 
-        $this->log(
+        ActivityLogger::log(
             ActivityEvent::Updated,
-            $role,
             "Updated role: {$role->name}",
+            $role,
             [
                 'old' => array_intersect_key($role->getOriginal(), $changes),
                 'new' => $changes,
@@ -35,24 +35,6 @@ class RoleObserver
 
     public function deleted(Role $role): void
     {
-        $this->log(ActivityEvent::Deleted, $role, "Deleted role: {$role->name}");
-    }
-
-    /**
-     * @param  array<string, mixed>|null  $properties
-     */
-    protected function log(ActivityEvent $event, Role $role, string $description, ?array $properties = null): void
-    {
-        ActivityLog::create([
-            'user_id' => auth()->id(),
-            'subject_type' => Role::class,
-            'subject_id' => $role->id,
-            'event' => $event,
-            'description' => $description,
-            'properties' => $properties,
-            'ip_address' => request()->ip(),
-            'user_agent' => request()->userAgent(),
-            'created_at' => now(),
-        ]);
+        ActivityLogger::log(ActivityEvent::Deleted, "Deleted role: {$role->name}", $role);
     }
 }
