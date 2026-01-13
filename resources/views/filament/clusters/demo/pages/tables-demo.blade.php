@@ -40,7 +40,8 @@
                                 ${{ number_format($this->getTax(), 2) }}
                             </span>
                         </div>
-                        <div class="flex justify-between text-base font-semibold border-t border-gray-200 dark:border-gray-700 pt-3">
+                        <div
+                            class="flex justify-between text-base font-semibold border-t border-gray-200 dark:border-gray-700 pt-3">
                             <span class="text-gray-900 dark:text-white">Grand Total</span>
                             <span class="text-primary-600 dark:text-primary-400">
                                 ${{ number_format($this->getGrandTotal(), 2) }}

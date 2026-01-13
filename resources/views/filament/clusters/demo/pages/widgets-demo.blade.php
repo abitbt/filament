@@ -4,7 +4,8 @@
             Widget Components
         </x-slot>
         <x-slot name="description">
-            Widgets are reusable components that display data in various formats including stats, charts, and custom content.
+            Widgets are reusable components that display data in various formats including stats, charts, and custom
+            content.
         </x-slot>
 
         <div class="prose dark:prose-invert max-w-none">

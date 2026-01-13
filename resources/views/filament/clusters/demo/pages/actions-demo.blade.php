@@ -87,7 +87,8 @@
                     <x-filament::button icon="heroicon-o-plus">Create</x-filament::button>
                     <x-filament::button icon="heroicon-o-pencil" color="warning">Edit</x-filament::button>
                     <x-filament::button icon="heroicon-o-trash" color="danger">Delete</x-filament::button>
-                    <x-filament::button icon="heroicon-o-arrow-down-tray" icon-position="after">Download</x-filament::button>
+                    <x-filament::button icon="heroicon-o-arrow-down-tray"
+                        icon-position="after">Download</x-filament::button>
                 </div>
             </div>
 
@@ -138,7 +139,8 @@
             <x-filament::link href="#">Default Link</x-filament::link>
             <x-filament::link href="#" color="success">Success Link</x-filament::link>
             <x-filament::link href="#" color="danger">Danger Link</x-filament::link>
-            <x-filament::link href="#" icon="heroicon-o-arrow-top-right-on-square">External Link</x-filament::link>
+            <x-filament::link href="#" icon="heroicon-o-arrow-top-right-on-square">External
+                Link</x-filament::link>
         </div>
     </x-filament::section>
 
