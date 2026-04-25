@@ -3,6 +3,7 @@
 namespace App\Filament\Clusters\Demo\Pages;
 
 use App\Filament\Clusters\Demo\DemoCluster;
+use App\Filament\Clusters\Demo\Enums\OrderStatus;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Forms\Components\Select;
@@ -13,6 +14,8 @@ use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Wizard\Step;
 use Filament\Schemas\Schema;
 
 class ActionsDemo extends Page implements HasForms
@@ -28,6 +31,13 @@ class ActionsDemo extends Page implements HasForms
     protected static ?string $cluster = DemoCluster::class;
 
     protected string $view = 'filament.clusters.demo.pages.actions-demo';
+
+    public OrderStatus $orderStatus = OrderStatus::New;
+
+    /**
+     * @var list<string>
+     */
+    public array $orderTags = [];
 
     /**
      * @return array<Action|ActionGroup>
@@ -167,7 +177,7 @@ class ActionsDemo extends Page implements HasForms
             ->color('warning')
             ->modalHeading('Multi-Step Wizard')
             ->steps([
-                \Filament\Schemas\Components\Wizard\Step::make('Account')
+                Step::make('Account')
                     ->description('Set up your account')
                     ->schema([
                         TextInput::make('username')
@@ -178,7 +188,7 @@ class ActionsDemo extends Page implements HasForms
                             ->password()
                             ->required(),
                     ]),
-                \Filament\Schemas\Components\Wizard\Step::make('Profile')
+                Step::make('Profile')
                     ->description('Complete your profile')
                     ->schema([
                         TextInput::make('full_name')
@@ -188,10 +198,10 @@ class ActionsDemo extends Page implements HasForms
                             ->label('Phone')
                             ->tel(),
                     ]),
-                \Filament\Schemas\Components\Wizard\Step::make('Review')
+                Step::make('Review')
                     ->description('Review and confirm')
                     ->schema([
-                        \Filament\Schemas\Components\Section::make('Summary')
+                        Section::make('Summary')
                             ->description('Please review your information before submitting.')
                             ->schema([]),
                     ]),
@@ -275,6 +285,115 @@ class ActionsDemo extends Page implements HasForms
             ->modalContent(view('filament.clusters.demo.pages.partials.button-sizes'))
             ->modalSubmitAction(false)
             ->modalCancelActionLabel('Close');
+    }
+
+    public function workflowActionGroup(): ActionGroup
+    {
+        return ActionGroup::make([
+            Action::make('process')
+                ->label('Process')
+                ->icon('heroicon-o-arrow-path')
+                ->color('warning')
+                ->visible(fn (): bool => $this->orderStatus === OrderStatus::New)
+                ->action(function (): void {
+                    $this->orderStatus = OrderStatus::Processing;
+                    $this->sendNotification('Order is now processing', 'success');
+                }),
+
+            Action::make('ship')
+                ->label('Ship')
+                ->icon('heroicon-o-truck')
+                ->color('success')
+                ->visible(fn (): bool => $this->orderStatus === OrderStatus::Processing)
+                ->slideOver()
+                ->modalSubmitActionLabel('Ship')
+                ->schema([
+                    Textarea::make('notes')
+                        ->label('Shipping notes')
+                        ->rows(3),
+                ])
+                ->extraModalFooterActions([
+                    Action::make('ship_and_notify')
+                        ->label('Ship & notify customer')
+                        ->color('info')
+                        ->action(function (): void {
+                            $this->orderStatus = OrderStatus::Shipped;
+                            $this->sendNotification('Order shipped & customer notified', 'success');
+                        }),
+                ])
+                ->action(function (): void {
+                    $this->orderStatus = OrderStatus::Shipped;
+                    $this->sendNotification('Order shipped', 'success');
+                }),
+
+            Action::make('deliver')
+                ->label('Deliver')
+                ->icon('heroicon-o-check-badge')
+                ->color('success')
+                ->visible(fn (): bool => $this->orderStatus === OrderStatus::Shipped)
+                ->requiresConfirmation()
+                ->action(function (): void {
+                    $this->orderStatus = OrderStatus::Delivered;
+                    $this->sendNotification('Order marked as delivered', 'success');
+                }),
+
+            Action::make('cancel')
+                ->label('Cancel')
+                ->icon('heroicon-o-x-circle')
+                ->color('danger')
+                ->visible(fn (): bool => ! in_array($this->orderStatus, [OrderStatus::Delivered, OrderStatus::Cancelled], true))
+                ->requiresConfirmation()
+                ->action(function (): void {
+                    $this->orderStatus = OrderStatus::Cancelled;
+                    $this->sendNotification('Order cancelled', 'danger');
+                }),
+
+            Action::make('reset')
+                ->label('Reset to new')
+                ->icon('heroicon-o-arrow-uturn-left')
+                ->color('gray')
+                ->visible(fn (): bool => $this->orderStatus !== OrderStatus::New)
+                ->action(function (): void {
+                    $this->orderStatus = OrderStatus::New;
+                    $this->sendNotification('Workflow reset', 'info');
+                }),
+        ])
+            ->label('Workflow')
+            ->icon('heroicon-o-rocket-launch')
+            ->color('primary')
+            ->button();
+    }
+
+    public function createOptionFormAction(): Action
+    {
+        return Action::make('addTag')
+            ->label('Add tag (with inline create)')
+            ->icon('heroicon-o-tag')
+            ->color('info')
+            ->schema([
+                Select::make('tag')
+                    ->label('Tag')
+                    ->options(fn (): array => array_combine($this->orderTags, $this->orderTags))
+                    ->required()
+                    ->native(false)
+                    ->searchable()
+                    ->createOptionForm([
+                        TextInput::make('name')
+                            ->label('Tag name')
+                            ->required()
+                            ->maxLength(40),
+                    ])
+                    ->createOptionUsing(function (array $data): string {
+                        $tag = $data['name'];
+
+                        if (! in_array($tag, $this->orderTags, true)) {
+                            $this->orderTags[] = $tag;
+                        }
+
+                        return $tag;
+                    }),
+            ])
+            ->action(fn (array $data) => $this->sendNotification('Applied tag: '.$data['tag'], 'success'));
     }
 
     protected function sendNotification(string $message, string $type): void

@@ -1,4 +1,46 @@
 <x-filament::page>
+    {{-- Stateful Workflow Section --}}
+    <x-filament::section>
+        <x-slot name="heading">
+            Stateful Workflow Actions
+        </x-slot>
+        <x-slot name="description">
+            Action visibility tied to record state — buttons appear/disappear as the workflow advances.
+            The Ship action also demonstrates <code>extraModalFooterActions</code>.
+        </x-slot>
+
+        <div class="flex flex-wrap items-center gap-4">
+            <div>
+                <span class="text-sm text-gray-500 dark:text-gray-400 me-2">Current status:</span>
+                <x-filament::badge :color="$this->orderStatus->getColor()">
+                    {{ $this->orderStatus->getLabel() }}
+                </x-filament::badge>
+            </div>
+            {{ $this->workflowActionGroup }}
+        </div>
+    </x-filament::section>
+
+    {{-- Inline Create Option Section --}}
+    <x-filament::section>
+        <x-slot name="heading">
+            Inline create-option form
+        </x-slot>
+        <x-slot name="description">
+            A Select with <code>createOptionForm()</code> — users can add new options without leaving the modal.
+        </x-slot>
+
+        <div class="flex flex-wrap items-center gap-4">
+            {{ $this->createOptionFormAction }}
+            @if (! empty($this->orderTags))
+                <div class="flex flex-wrap gap-2">
+                    @foreach ($this->orderTags as $tag)
+                        <x-filament::badge color="info">{{ $tag }}</x-filament::badge>
+                    @endforeach
+                </div>
+            @endif
+        </div>
+    </x-filament::section>
+
     {{-- Modal Actions Section --}}
     <x-filament::section>
         <x-slot name="heading">

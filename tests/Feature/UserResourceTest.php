@@ -5,6 +5,8 @@ use App\Filament\Resources\UserResource;
 use App\Filament\Resources\UserResource\Pages\CreateUser;
 use App\Filament\Resources\UserResource\Pages\EditUser;
 use App\Filament\Resources\UserResource\Pages\ListUsers;
+use App\Filament\Resources\UserResource\RelationManagers\ActivityLogsRelationManager;
+use App\Models\ActivityLog;
 use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
@@ -292,6 +294,29 @@ describe('authorization', function () {
 
         $this->get(UserResource::getUrl('create'))
             ->assertSuccessful();
+    });
+});
+
+describe('activity logs relation manager', function () {
+    it('renders activity logs for the user being edited', function () {
+        $admin = User::factory()->create(['role_id' => $this->superAdminRole->id]);
+        $target = User::factory()->create();
+
+        // Generate some activity by updating the target.
+        $this->actingAs($admin);
+        $target->update(['name' => 'Updated Name']);
+
+        $logs = ActivityLog::where('user_id', $admin->id)
+            ->where('subject_type', User::class)
+            ->where('subject_id', $target->id)
+            ->get();
+
+        Livewire::test(ActivityLogsRelationManager::class, [
+            'ownerRecord' => $admin,
+            'pageClass' => EditUser::class,
+        ])
+            ->assertOk()
+            ->assertCanSeeTableRecords($logs);
     });
 });
 

@@ -23,6 +23,8 @@ use Filament\Schemas\Schema;
 use Filament\Support\Enums\Alignment;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\SelectColumn;
+use Filament\Tables\Columns\Summarizers\Count;
+use Filament\Tables\Columns\Summarizers\Range;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\TextInputColumn;
 use Filament\Tables\Columns\ToggleColumn;
@@ -179,7 +181,8 @@ class TablesDemo extends Page implements HasForms, HasTable
                     ->searchable()
                     ->copyable()
                     ->copyMessage('Email copied!')
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->summarize(Count::make()->label('Users')),
 
                 TextColumn::make('role.name')
                     ->label('Role')
@@ -233,7 +236,8 @@ class TablesDemo extends Page implements HasForms, HasTable
                     ->label('Created')
                     ->dateTime('M j, Y')
                     ->sortable()
-                    ->toggleable(),
+                    ->toggleable()
+                    ->summarize(Range::make()->label('Date range')),
 
                 TextColumn::make('updated_at')
                     ->label('Updated')

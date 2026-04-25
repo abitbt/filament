@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\ActivityLogResource\Pages;
 use App\Filament\Resources\ActivityLogResource\Tables\ActivityLogsTable;
+use App\Filament\Resources\Concerns\HasCountNavigationBadge;
 use App\Models\ActivityLog;
 use BackedEnum;
 use Filament\Infolists\Components\KeyValueEntry;
@@ -12,10 +13,13 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use UnitEnum;
 
 class ActivityLogResource extends Resource
 {
+    use HasCountNavigationBadge;
+
     protected static ?string $model = ActivityLog::class;
 
     protected static string|BackedEnum|null $navigationIcon = null;
@@ -94,5 +98,23 @@ class ActivityLogResource extends Resource
             'index' => Pages\ListActivityLogs::route('/'),
             'view' => Pages\ViewActivityLog::route('/{record}'),
         ];
+    }
+
+    /**
+     * @return Builder<ActivityLog>
+     */
+    protected static function navigationBadgeQuery(): Builder
+    {
+        return ActivityLog::query()->where('created_at', '>=', now()->subDay());
+    }
+
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return 'info';
+    }
+
+    public static function getNavigationBadgeTooltip(): ?string
+    {
+        return 'Logged in the last 24 hours';
     }
 }
