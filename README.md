@@ -1,25 +1,25 @@
-# Laravel 12 Filament 4 Starter Kit
+# Laravel 13 Filament 5 Starter Kit
 
-A production-ready starter kit for building admin panels and internal tools with Laravel 12 and Filament 4. Includes a complete RBAC system, activity logging, and demo components to accelerate your development.
+A production-ready starter kit for building admin panels and internal tools with Laravel 13 and Filament 5. Includes a complete RBAC system, activity logging, and demo components to accelerate your development.
 
 ## Why This Starter Kit?
 
 - **Skip the boilerplate** - Authentication, authorization, and user management ready out of the box
-- **Learn Filament 4** - Demo cluster showcases forms, tables, widgets, actions, and infolists
+- **Learn Filament 5** - Demo cluster showcases forms, tables, widgets, actions, and infolists
 - **Production patterns** - Policies, observers, services, and traits following Laravel best practices
-- **Modern stack** - Latest versions of Laravel 12, Filament 4, Livewire 3, and Tailwind 4
+- **Modern stack** - Latest versions of Laravel 13, Filament 5, Livewire 4, and Tailwind 4
 
 ## Tech Stack
 
 | Component | Version |
 |-----------|---------|
 | PHP | 8.4 |
-| Laravel | 12.x |
-| Filament | 4.x |
-| Livewire | 3.x |
+| Laravel | 13.x |
+| Filament | 5.x |
+| Livewire | 4.x |
 | Tailwind CSS | 4.x |
 | Pest | 4.x |
-| PHPStan | Level 5 |
+| PHPStan | Level 8 |
 
 ## Features
 
@@ -259,18 +259,6 @@ unset APP_ENV && php artisan test --coverage
 # Run specific test file
 unset APP_ENV && php artisan test tests/Feature/UserResourceTest.php
 ```
-
-## Filament 4 Key Changes
-
-This starter kit uses Filament 4 conventions:
-
-| Filament 3 | Filament 4 |
-|------------|------------|
-| `Form $form` | `Schema $schema` |
-| `$form->schema([])` | `$schema->components([])` |
-| `form()` on actions | `schema()` |
-| `Filament\Forms\Form` | `Filament\Schemas\Schema` |
-| `Filament\Forms\Get` | `Filament\Schemas\Components\Utilities\Get` |
 
 ## Contributing
 
