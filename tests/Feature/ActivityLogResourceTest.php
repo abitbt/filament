@@ -188,6 +188,32 @@ describe('activity log creation via observers', function () {
         ]);
     });
 
+    it('does not log password or unknown fields when user is updated', function () {
+        $admin = User::factory()->create(['role_id' => $this->superAdminRole->id]);
+        $user = User::factory()->create(['name' => 'Original Name']);
+
+        $this->actingAs($admin);
+
+        $user->update([
+            'name' => 'New Name',
+            'password' => 'a-new-password',
+            'remember_token' => 'a-new-token',
+        ]);
+
+        $log = ActivityLog::query()
+            ->where('subject_type', User::class)
+            ->where('subject_id', $user->id)
+            ->where('event', ActivityEvent::Updated->value)
+            ->latest('id')
+            ->first();
+
+        expect($log)->not->toBeNull();
+        expect($log->properties['new'])->toHaveKey('name');
+        expect($log->properties['new'])->not->toHaveKey('password');
+        expect($log->properties['new'])->not->toHaveKey('remember_token');
+        expect($log->properties['old'])->not->toHaveKey('password');
+    });
+
     it('logs role creation', function () {
         $admin = User::factory()->create(['role_id' => $this->superAdminRole->id]);
 

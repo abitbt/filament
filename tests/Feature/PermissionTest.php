@@ -37,6 +37,13 @@ it('returns access levels correctly', function () {
     expect(Permission::UsersDelete->getAccessLevel())->toBe(3);
 });
 
+it('returns the access levels available for each group', function () {
+    expect(Permission::levelsForGroup('Users'))->toBe([0, 1, 2, 3]);
+    expect(Permission::levelsForGroup('Roles'))->toBe([0, 1, 2, 3]);
+    expect(Permission::levelsForGroup('Activity Logs'))->toBe([0, 1, 3]);
+    expect(Permission::levelsForGroup('Nonexistent'))->toBe([0]);
+});
+
 it('gets permissions for resource at level', function () {
     // Level 0 = no permissions
     expect(Permission::forResourceAtLevel('Users', 0))->toBeEmpty();

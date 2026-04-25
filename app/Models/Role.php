@@ -45,7 +45,7 @@ class Role extends Model
 
     public function hasPermission(string $permission): bool
     {
-        return $this->permissions()->where('name', $permission)->exists();
+        return $this->permissions->contains('name', $permission);
     }
 
     public function isSuperAdmin(): bool

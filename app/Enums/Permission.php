@@ -71,6 +71,55 @@ enum Permission: string
     }
 
     /**
+     * Get the access levels available for a resource group.
+     * Always includes 0 (None). Other levels reflect which permissions actually exist.
+     * Example: 'Activity Logs' has only Read + Delete, so this returns [0, 1, 3].
+     *
+     * @return array<int>
+     */
+    public static function levelsForGroup(string $group): array
+    {
+        $levels = collect(self::cases())
+            ->filter(fn (self $p) => $p->getGroup() === $group)
+            ->map(fn (self $p) => $p->getAccessLevel())
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+
+        return [0, ...$levels];
+    }
+
+    /**
+     * Get level → label lookup for a group. Relabels level 3 to "View & Delete"
+     * when the group skips level 2 (e.g. Activity Logs has Read + Delete but no Write).
+     *
+     * @return array<int, string>
+     */
+    public static function labelsForGroup(string $group): array
+    {
+        $defaults = [
+            0 => 'None',
+            1 => 'View',
+            2 => 'View & Edit',
+            3 => 'View, Edit & Delete',
+        ];
+
+        $levels = self::levelsForGroup($group);
+
+        $labels = [];
+        foreach ($levels as $level) {
+            $labels[$level] = $defaults[$level] ?? "Level {$level}";
+        }
+
+        if (in_array(3, $levels, true) && ! in_array(2, $levels, true)) {
+            $labels[3] = 'View & Delete';
+        }
+
+        return $labels;
+    }
+
+    /**
      * Get all unique resource groups.
      *
      * @return array<string>

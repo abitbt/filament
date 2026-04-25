@@ -83,8 +83,11 @@ pnpm install
 cp .env.example .env
 php artisan key:generate
 php artisan migrate --seed
+php artisan storage:link
 pnpm run build
 ```
+
+> `storage:link` is required for user avatar uploads to render — they're stored under `storage/avatars/` and served via the public symlink.
 
 ### Start Development Server
 
@@ -170,7 +173,9 @@ Permissions use a hierarchical access model:
 |-------|-------------|
 | Users | `users.read`, `users.write`, `users.delete` |
 | Roles | `roles.read`, `roles.write`, `roles.delete` |
-| Activity Logs | `activity_logs.read`, `activity_logs.write`, `activity_logs.delete` |
+| Activity Logs | `activity_logs.read`, `activity_logs.delete` |
+
+> Activity logs are system-generated and immutable — no `write` permission is exposed.
 
 ### Adding New Permissions
 

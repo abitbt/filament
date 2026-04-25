@@ -8,6 +8,20 @@ use App\Services\ActivityLogger;
 
 class UserObserver
 {
+    /**
+     * Fields safe to capture in activity log diffs.
+     * Allowlist (not denylist) so future sensitive fields don't leak by default.
+     *
+     * @var list<string>
+     */
+    private const LOGGABLE_FIELDS = [
+        'name',
+        'email',
+        'status',
+        'role_id',
+        'avatar',
+    ];
+
     public function created(User $user): void
     {
         ActivityLogger::log(ActivityEvent::Created, "Created user: {$user->name}", $user);
@@ -15,31 +29,22 @@ class UserObserver
 
     public function updated(User $user): void
     {
-        $changes = $user->getChanges();
-        unset($changes['updated_at'], $changes['remember_token'], $changes['updated_by']);
+        $allowed = array_flip(self::LOGGABLE_FIELDS);
+        $newValues = array_intersect_key($user->getChanges(), $allowed);
 
-        if (empty($changes)) {
+        if (empty($newValues)) {
             return;
         }
 
-        // Redact password in both old and new values
-        $safeOldValues = array_intersect_key($user->getOriginal(), $changes);
-        $safeNewValues = $changes;
-
-        if (isset($safeOldValues['password'])) {
-            $safeOldValues['password'] = '[REDACTED]';
-        }
-        if (isset($safeNewValues['password'])) {
-            $safeNewValues['password'] = '[REDACTED]';
-        }
+        $oldValues = array_intersect_key($user->getOriginal(), $newValues);
 
         ActivityLogger::log(
             ActivityEvent::Updated,
             "Updated user: {$user->name}",
             $user,
             [
-                'old' => $safeOldValues,
-                'new' => $safeNewValues,
+                'old' => $oldValues,
+                'new' => $newValues,
             ]
         );
     }

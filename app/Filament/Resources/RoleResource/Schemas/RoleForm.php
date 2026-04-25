@@ -7,6 +7,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\ToggleButtons;
+use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Utilities\Set;
@@ -38,7 +39,7 @@ class RoleForm
     }
 
     /**
-     * @return array<\Filament\Schemas\Components\Component>
+     * @return array<Component>
      */
     public static function getDetailsComponents(): array
     {
@@ -66,36 +67,37 @@ class RoleForm
     }
 
     /**
-     * @return array<\Filament\Schemas\Components\Component>
+     * @return array<Component>
      */
     public static function getPermissionComponents(): array
     {
+        $iconForLevel = [
+            0 => 'heroicon-o-x-circle',
+            1 => 'heroicon-o-eye',
+            2 => 'heroicon-o-pencil-square',
+            3 => 'heroicon-o-trash',
+        ];
+        $colorForLevel = [
+            0 => 'gray',
+            1 => 'info',
+            2 => 'warning',
+            3 => 'danger',
+        ];
+
         $components = [];
 
         foreach (Permission::groups() as $group) {
-            $fieldName = 'access_level_'.Str::snake(Str::lower($group));
+            $levels = Permission::levelsForGroup($group);
+            $pick = fn (array $map): array => collect($levels)
+                ->mapWithKeys(fn (int $level) => [(string) $level => $map[$level]])
+                ->all();
 
-            $components[] = ToggleButtons::make($fieldName)
+            $components[] = ToggleButtons::make('access_level_'.Str::snake(Str::lower($group)))
                 ->label($group)
                 ->inlineLabel()
-                ->options([
-                    '0' => 'None',
-                    '1' => 'View',
-                    '2' => 'View & Edit',
-                    '3' => 'View, Edit & Delete',
-                ])
-                ->icons([
-                    '0' => 'heroicon-o-x-circle',
-                    '1' => 'heroicon-o-eye',
-                    '2' => 'heroicon-o-pencil-square',
-                    '3' => 'heroicon-o-trash',
-                ])
-                ->colors([
-                    '0' => 'gray',
-                    '1' => 'info',
-                    '2' => 'warning',
-                    '3' => 'danger',
-                ])
+                ->options(Permission::labelsForGroup($group))
+                ->icons($pick($iconForLevel))
+                ->colors($pick($colorForLevel))
                 ->default('0')
                 ->inline()
                 ->grouped();

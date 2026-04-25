@@ -294,3 +294,51 @@ describe('authorization', function () {
             ->assertSuccessful();
     });
 });
+
+describe('self-edit privilege escalation guard', function () {
+    it('prevents a viewer from escalating their own role', function () {
+        $viewer = User::factory()->viewer()->create();
+
+        $this->actingAs($viewer);
+
+        Livewire::test(EditUser::class, ['record' => $viewer->id])
+            ->fillForm([
+                'role_id' => $this->superAdminRole->id,
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        expect($viewer->fresh()->role_id)->toBe($this->viewerRole->id);
+    });
+
+    it('prevents a user from changing their own status', function () {
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin);
+
+        Livewire::test(EditUser::class, ['record' => $admin->id])
+            ->fillForm([
+                'status' => UserStatus::Inactive->value,
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        expect($admin->fresh()->status)->toBe(UserStatus::Active);
+    });
+
+    it('still allows changing role on other users', function () {
+        $admin = User::factory()->create(['role_id' => $this->superAdminRole->id]);
+        $target = User::factory()->viewer()->create();
+
+        $this->actingAs($admin);
+
+        Livewire::test(EditUser::class, ['record' => $target->id])
+            ->fillForm([
+                'role_id' => $this->adminRole->id,
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        expect($target->fresh()->role_id)->toBe($this->adminRole->id);
+    });
+});

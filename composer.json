@@ -2,7 +2,7 @@
     "$schema": "https://getcomposer.org/schema.json",
     "name": "abitbt/filament",
     "type": "project",
-    "description": "Laravel 12 starter kit with Filament 4, featuring RBAC, activity logging, and demo components.",
+    "description": "Laravel 13 starter kit with Filament 5, featuring RBAC, activity logging, and demo components.",
     "keywords": [
         "laravel",
         "filament",
